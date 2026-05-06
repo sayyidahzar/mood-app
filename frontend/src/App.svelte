@@ -1,4 +1,5 @@
 <script>
+    // 🔥 GANTI DENGAN URL BACKEND RAILWAY KAMU
     const API = "https://mood-app-production-275e.up.railway.app";
 
     let page = "login";
@@ -13,6 +14,7 @@
     let story = "";
     let quote = "";
 
+    // HISTORY STATE
     let showHistory = false;
     let histories = [];
     let editId = null;
@@ -23,31 +25,25 @@
         loadMoods();
     }
 
-    // ======================
-    // LOAD MOODS
-    // ======================
     function loadMoods() {
         fetch(`${API}/moods`)
         .then(res => res.json())
         .then(data => moods = data)
-        .catch(err => console.error("Error moods:", err));
+        .catch(err => console.error(err));
     }
 
-    // ======================
-    // LOAD HISTORY
-    // ======================
     function loadHistory() {
         if (!loggedUser) return;
 
         fetch(`${API}/history/${loggedUser}`)
         .then(res => res.json())
-        .then(data => histories = data)
-        .catch(err => console.error("Error history:", err));
+        .then(data => {
+            console.log("HISTORY:", data);
+            histories = data;
+        })
+        .catch(err => console.error("Error:", err));
     }
 
-    // ======================
-    // LOGIN
-    // ======================
     function login() {
         fetch(`${API}/login`, {
             method: "POST",
@@ -59,7 +55,7 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
+            if (data.success || data.message?.includes("berhasil")) {
                 localStorage.setItem("username", username);
                 loggedUser = username;
                 page = "dashboard";
@@ -67,13 +63,9 @@
             } else {
                 alert(data.message || "Login gagal 😭");
             }
-        })
-        .catch(err => console.error("Login error:", err));
+        });
     }
 
-    // ======================
-    // REGISTER
-    // ======================
     function register() {
         fetch(`${API}/register`, {
             method: "POST",
@@ -87,8 +79,7 @@
         .then(data => {
             alert(data.message);
             page = "login";
-        })
-        .catch(err => console.error("Register error:", err));
+        });
     }
 
     function logout() {
@@ -101,9 +92,6 @@
         selectedMood = id;
     }
 
-    // ======================
-    // SAVE ENTRY
-    // ======================
     function save() {
         if (!selectedMood) {
             alert("Pilih mood dulu 😭");
@@ -119,19 +107,16 @@
                 story
             })
         })
-        .then(res => res.json())
         .then(() => {
             story = "";
             loadHistory();
-        })
-        .catch(err => console.error("Save error:", err));
+        });
 
         fetch(`${API}/quotes/${selectedMood}`)
         .then(res => res.json())
         .then(data => {
-            quote = data[0]?.quote || "Tetap semangat ya 💖";
-        })
-        .catch(err => console.error("Quote error:", err));
+            quote = data[0]?.quote || "";
+        });
     }
 
     function deleteHistory(id) {
@@ -139,7 +124,7 @@
             method: "DELETE"
         })
         .then(() => loadHistory())
-        .catch(err => console.error("Delete error:", err));
+        .catch(err => console.error(err));
     }
 
     function startEdit(h) {
@@ -158,7 +143,7 @@
             editStory = "";
             loadHistory();
         })
-        .catch(err => console.error("Update error:", err));
+        .catch(err => console.error(err));
     }
 </script>
 
@@ -192,8 +177,9 @@
 {#if page === "dashboard"}
 <div class="box" style="position: relative;">
     
+    <!-- BUTTON HISTORY -->
     <button 
-        style="position:absolute; top:10px; right:10px;"
+        style="position:absolute; top:10px; right:10px; width:auto; padding:5px 10px;"
         on:click={() => { showHistory = true; loadHistory(); }}>
         📜
     </button>
@@ -212,15 +198,16 @@
 
     <textarea bind:value={story} placeholder="cerita kamu hari ini..."></textarea>
 
-    <button on:click={save}>Simpan</button>
+    <button class="save-btn" on:click={save}>Simpan</button>
 
     {#if quote}
         <p>✨ {quote}</p>
     {/if}
 
-    <button on:click={logout}>Logout</button>
+    <button class="logout-btn" on:click={logout}>Logout</button>
 </div>
 
+<!-- HISTORY POPUP -->
 {#if showHistory}
 <div class="overlay">
     <div class="history-box">
@@ -236,7 +223,7 @@
 
                 {#if editId === h.id}
                     <textarea bind:value={editStory}></textarea>
-                    <button on:click={() => updateHistory(h.id)}>Simpan</button>
+                    <button on:click={() => updateHistory(h.id)}>Simpan Edit</button>
                 {:else}
                     <p>{h.story}</p>
                     <button on:click={() => startEdit(h)}>Edit</button>
@@ -250,4 +237,95 @@
     </div>
 </div>
 {/if}
+
 {/if}
+
+<style>
+    :global(body) {
+        margin: 0;
+        height: 100vh;
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #ffd6e8, #ffc0cb);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .box {
+        align-self: center;
+        background: white;
+        padding: 30px;
+        border-radius: 18px;
+        text-align: center;
+        width: 350px;
+    }.h2{
+        color: #000000;
+    }
+
+    input, textarea {
+    width: 100%;
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: rgba(200, 200, 200, 0.3); /* abu + transparan 30% */
+    border: 1px solid rgba(0, 0, 0, 0.15); /* border tipis */
+    color: black;
+
+    outline: none;
+}
+
+    button {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        width: 100%;
+        background: #ff4f9a;
+        color: white;
+        cursor: pointer;
+    }
+
+    .logout-btn {
+        background: gray;
+    }
+
+    .moods button {
+        width: auto;
+        margin: 5px;
+        background: #ffe3ec;
+        color: black;
+    }
+
+    .moods button.selected {
+        background: #ff4f9a;
+        color: white;
+    }
+
+    /* OVERLAY */
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+    }
+
+    .history-box {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .item {
+        margin-bottom: 15px;
+        border-bottom: 1px solid #ccc;
+    }
+</style>
