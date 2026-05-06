@@ -1,38 +1,57 @@
+require('dotenv').config();
+
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 
 const app = express();
+
+// =======================
+// MIDDLEWARE
+// =======================
 app.use(cors());
 app.use(express.json());
 
 // =======================
-// KONEKSI DATABASE
+// DATABASE (POOL - STABLE)
 // =======================
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'aliyah710',
-    database: 'websiteku'
+const db = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
-db.connect((err) => {
+// TEST CONNECTION
+db.getConnection((err, connection) => {
     if (err) {
-        console.log('Koneksi gagal:', err);
+        console.log('❌ DB gagal connect:', err);
     } else {
-        console.log('Koneksi berhasil ke MySQL! 🚀');
+        console.log('✅ DB connected!');
+        connection.release();
     }
 });
 
 // =======================
-// GET USERS
+// ROOT
+// =======================
+app.get('/', (req, res) => {
+    res.send('API jalan 🚀');
+});
+
+// =======================
+// USERS
 // =======================
 app.get('/users', (req, res) => {
     db.query('SELECT * FROM users', (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.json({ message: 'Gagal ambil data ❌' });
-        }
+        if (err) return res.status(500).json({ message: 'Gagal ambil data ❌' });
         res.json(result);
     });
 });
@@ -51,10 +70,7 @@ app.post('/register', (req, res) => {
         'SELECT * FROM users WHERE username=?',
         [username],
         (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.json({ message: 'Server error ❌' });
-            }
+            if (err) return res.status(500).json({ message: 'Server error ❌' });
 
             if (result.length > 0) {
                 return res.json({ message: 'Username sudah dipakai 😢' });
@@ -64,10 +80,7 @@ app.post('/register', (req, res) => {
                 'INSERT INTO users (username, password) VALUES (?, ?)',
                 [username, password],
                 (err) => {
-                    if (err) {
-                        console.log(err);
-                        return res.json({ message: 'Register gagal ❌' });
-                    }
+                    if (err) return res.status(500).json({ message: 'Register gagal ❌' });
                     res.json({ message: 'Register berhasil 💖' });
                 }
             );
@@ -90,10 +103,7 @@ app.post('/login', (req, res) => {
         'SELECT * FROM users WHERE username=? AND password=?',
         [username, password],
         (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.json({ message: 'Error server ❌' });
-            }
+            if (err) return res.status(500).json({ message: 'Error server ❌' });
 
             if (result.length > 0) {
                 res.json({
@@ -112,7 +122,7 @@ app.post('/login', (req, res) => {
 });
 
 // =======================
-// UPDATE USER (FIXED ROUTE)
+// UPDATE USER
 // =======================
 app.put('/update-user/:id', (req, res) => {
     const { username, password } = req.body;
@@ -122,10 +132,7 @@ app.put('/update-user/:id', (req, res) => {
         'UPDATE users SET username=?, password=? WHERE id=?',
         [username, password, id],
         (err) => {
-            if (err) {
-                console.log(err);
-                return res.json({ message: 'Update gagal ❌' });
-            }
+            if (err) return res.status(500).json({ message: 'Update gagal ❌' });
             res.json({ message: 'Update user berhasil 🔥' });
         }
     );
@@ -134,73 +141,61 @@ app.put('/update-user/:id', (req, res) => {
 // =======================
 // MOODS
 // =======================
-app.get("/moods", (req, res) => {
-    db.query("SELECT * FROM moods", (err, result) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).send(err);
-        }
+app.get('/moods', (req, res) => {
+    db.query('SELECT * FROM moods', (err, result) => {
+        if (err) return res.status(500).send(err);
         res.json(result);
     });
 });
 
 // =======================
-// SAVE ENTRY (CREATE)
+// CREATE ENTRY
 // =======================
-app.post("/entry", (req, res) => {
+app.post('/entry', (req, res) => {
     const { username, mood_id, story } = req.body;
 
     if (!username || !mood_id) {
-        return res.json({ message: "Data tidak lengkap 😭" });
+        return res.json({ message: 'Data tidak lengkap 😭' });
     }
 
     db.query(
-        "INSERT INTO entries (username, mood_id, story) VALUES (?, ?, ?)",
+        'INSERT INTO entries (username, mood_id, story) VALUES (?, ?, ?)',
         [username, mood_id, story],
         (err) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).send(err);
-            }
-            res.json({ message: "Berhasil disimpan 💾" });
+            if (err) return res.status(500).send(err);
+            res.json({ message: 'Berhasil disimpan 💾' });
         }
     );
 });
 
 // =======================
-// GET HISTORY (READ)
+// GET HISTORY
 // =======================
 app.get('/history/:username', (req, res) => {
     const username = req.params.username;
 
     db.query(
-        "SELECT * FROM entries WHERE username=? ORDER BY created_at DESC",
+        'SELECT * FROM entries WHERE username=? ORDER BY created_at DESC',
         [username],
         (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.json([]);
-            }
+            if (err) return res.json([]);
             res.json(result);
         }
     );
 });
 
 // =======================
-// UPDATE ENTRY (EDIT)
+// UPDATE ENTRY
 // =======================
 app.put('/update/:id', (req, res) => {
     const id = req.params.id;
     const { story } = req.body;
 
     db.query(
-        "UPDATE entries SET story=? WHERE id=?",
+        'UPDATE entries SET story=? WHERE id=?',
         [story, id],
         (err) => {
-            if (err) {
-                console.log(err);
-                return res.json({ message: 'Update gagal ❌' });
-            }
+            if (err) return res.json({ message: 'Update gagal ❌' });
             res.json({ message: 'Update berhasil ✏️' });
         }
     );
@@ -213,47 +208,36 @@ app.delete('/delete/:id', (req, res) => {
     const id = req.params.id;
 
     db.query(
-        "DELETE FROM entries WHERE id=?",
+        'DELETE FROM entries WHERE id=?',
         [id],
         (err) => {
-            if (err) {
-                console.log(err);
-                return res.json({ message: 'Hapus gagal ❌' });
-            }
+            if (err) return res.json({ message: 'Hapus gagal ❌' });
             res.json({ message: 'Berhasil dihapus 🗑️' });
         }
     );
 });
 
 // =======================
-// QUOTES (RANDOM 1)
+// QUOTES
 // =======================
-app.get("/quotes/:mood_id", (req, res) => {
+app.get('/quotes/:mood_id', (req, res) => {
     const mood_id = req.params.mood_id;
 
     db.query(
-        "SELECT * FROM quotes WHERE mood_id = ? ORDER BY RAND() LIMIT 1",
+        'SELECT * FROM quotes WHERE mood_id=? ORDER BY RAND() LIMIT 1',
         [mood_id],
         (err, result) => {
-            if (err) {
-                console.log(err);
-                return res.status(500).send(err);
-            }
+            if (err) return res.status(500).send(err);
             res.json(result);
         }
     );
 });
 
 // =======================
-// ROOT
-// =======================
-app.get('/', (req, res) => {
-    res.send('API jalan 🚀');
-});
-
-// =======================
 // RUN SERVER
 // =======================
-app.listen(3000, () => {
-    console.log('Server jalan di http://localhost:3000 🚀');
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`🚀 Server jalan di port ${PORT}`);
 });

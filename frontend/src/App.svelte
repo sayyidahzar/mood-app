@@ -1,4 +1,6 @@
 <script>
+    const API = "https://backendmu.up.railway.app"; // GANTI INI
+
     let page = "login";
 
     let username = "";
@@ -11,7 +13,6 @@
     let story = "";
     let quote = "";
 
-    // HISTORY STATE
     let showHistory = false;
     let histories = [];
     let editId = null;
@@ -23,7 +24,7 @@
     }
 
     function loadMoods() {
-        fetch("http://localhost:3000/moods")
+        fetch(`${API}/moods`)
         .then(res => res.json())
         .then(data => moods = data)
         .catch(err => console.error(err));
@@ -32,17 +33,14 @@
     function loadHistory() {
         if (!loggedUser) return;
 
-        fetch(`http://localhost:3000/history/${loggedUser}`)
+        fetch(`${API}/history/${loggedUser}`)
         .then(res => res.json())
-        .then(data => {
-            console.log("HISTORY:", data);
-            histories = data;
-        })
-        .catch(err => console.error("Error:", err));
+        .then(data => histories = data)
+        .catch(err => console.error(err));
     }
 
     function login() {
-        fetch("http://localhost:3000/login", {
+        fetch(`${API}/login`, {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
@@ -52,7 +50,7 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success || data.message.includes("berhasil")) {
+            if (data.success) {
                 localStorage.setItem("username", username);
                 loggedUser = username;
                 page = "dashboard";
@@ -64,7 +62,7 @@
     }
 
     function register() {
-        fetch("http://localhost:3000/register", {
+        fetch(`${API}/register`, {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
@@ -95,7 +93,7 @@
             return;
         }
 
-        fetch("http://localhost:3000/entry", {
+        fetch(`${API}/entry`, {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
@@ -106,18 +104,18 @@
         })
         .then(() => {
             story = "";
-            loadHistory(); // refresh history
+            loadHistory();
         });
 
-        fetch(`http://localhost:3000/quotes/${selectedMood}`)
+        fetch(`${API}/quotes/${selectedMood}`)
         .then(res => res.json())
         .then(data => {
-            quote = data[0].quote;
+            quote = data[0]?.quote || "";
         });
     }
 
     function deleteHistory(id) {
-        fetch(`http://localhost:3000/delete/${id}`, {
+        fetch(`${API}/delete/${id}`, {
             method: "DELETE"
         })
         .then(() => loadHistory())
@@ -130,7 +128,7 @@
     }
 
     function updateHistory(id) {
-        fetch(`http://localhost:3000/update/${id}`, {
+        fetch(`${API}/update/${id}`, {
             method: "PUT",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({ story: editStory })
@@ -174,7 +172,6 @@
 {#if page === "dashboard"}
 <div class="box" style="position: relative;">
     
-    <!-- BUTTON HISTORY -->
     <button 
         style="position:absolute; top:10px; right:10px; width:auto; padding:5px 10px;"
         on:click={() => { showHistory = true; loadHistory(); }}>
@@ -204,7 +201,6 @@
     <button class="logout-btn" on:click={logout}>Logout</button>
 </div>
 
-<!-- HISTORY POPUP -->
 {#if showHistory}
 <div class="overlay">
     <div class="history-box">
@@ -234,95 +230,4 @@
     </div>
 </div>
 {/if}
-
 {/if}
-
-<style>
-    :global(body) {
-        margin: 0;
-        height: 100vh;
-        font-family: 'Poppins', sans-serif;
-        background: linear-gradient(135deg, #ffd6e8, #ffc0cb);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .box {
-        align-self: center;
-        background: white;
-        padding: 30px;
-        border-radius: 18px;
-        text-align: center;
-        width: 350px;
-    }.h2{
-        color: #000000;
-    }
-
-    input, textarea {
-    width: 100%;
-    margin: 5px 0;
-    padding: 10px;
-    border-radius: 10px;
-    background-color: rgba(200, 200, 200, 0.3); /* abu + transparan 30% */
-    border: 1px solid rgba(0, 0, 0, 0.15); /* border tipis */
-    color: black;
-
-    outline: none;
-}
-
-    button {
-        margin-top: 10px;
-        padding: 10px;
-        border-radius: 10px;
-        border: none;
-        width: 100%;
-        background: #ff4f9a;
-        color: white;
-        cursor: pointer;
-    }
-
-    .logout-btn {
-        background: gray;
-    }
-
-    .moods button {
-        width: auto;
-        margin: 5px;
-        background: #ffe3ec;
-        color: black;
-    }
-
-    .moods button.selected {
-        background: #ff4f9a;
-        color: white;
-    }
-
-    /* OVERLAY */
-    .overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.4);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
-    }
-
-    .history-box {
-        background: white;
-        padding: 20px;
-        border-radius: 15px;
-        width: 300px;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-
-    .item {
-        margin-bottom: 15px;
-        border-bottom: 1px solid #ccc;
-    }
-</style>
