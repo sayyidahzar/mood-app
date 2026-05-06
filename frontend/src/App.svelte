@@ -1,5 +1,5 @@
 <script>
-    const API = "https://backendmu.up.railway.app"; // GANTI INI
+    const API = "https://mood-app-production-275e.up.railway.app";
 
     let page = "login";
 
@@ -23,22 +23,31 @@
         loadMoods();
     }
 
+    // ======================
+    // LOAD MOODS
+    // ======================
     function loadMoods() {
         fetch(`${API}/moods`)
         .then(res => res.json())
         .then(data => moods = data)
-        .catch(err => console.error(err));
+        .catch(err => console.error("Error moods:", err));
     }
 
+    // ======================
+    // LOAD HISTORY
+    // ======================
     function loadHistory() {
         if (!loggedUser) return;
 
         fetch(`${API}/history/${loggedUser}`)
         .then(res => res.json())
         .then(data => histories = data)
-        .catch(err => console.error(err));
+        .catch(err => console.error("Error history:", err));
     }
 
+    // ======================
+    // LOGIN
+    // ======================
     function login() {
         fetch(`${API}/login`, {
             method: "POST",
@@ -58,9 +67,13 @@
             } else {
                 alert(data.message || "Login gagal 😭");
             }
-        });
+        })
+        .catch(err => console.error("Login error:", err));
     }
 
+    // ======================
+    // REGISTER
+    // ======================
     function register() {
         fetch(`${API}/register`, {
             method: "POST",
@@ -74,7 +87,8 @@
         .then(data => {
             alert(data.message);
             page = "login";
-        });
+        })
+        .catch(err => console.error("Register error:", err));
     }
 
     function logout() {
@@ -87,6 +101,9 @@
         selectedMood = id;
     }
 
+    // ======================
+    // SAVE ENTRY
+    // ======================
     function save() {
         if (!selectedMood) {
             alert("Pilih mood dulu 😭");
@@ -102,16 +119,19 @@
                 story
             })
         })
+        .then(res => res.json())
         .then(() => {
             story = "";
             loadHistory();
-        });
+        })
+        .catch(err => console.error("Save error:", err));
 
         fetch(`${API}/quotes/${selectedMood}`)
         .then(res => res.json())
         .then(data => {
-            quote = data[0]?.quote || "";
-        });
+            quote = data[0]?.quote || "Tetap semangat ya 💖";
+        })
+        .catch(err => console.error("Quote error:", err));
     }
 
     function deleteHistory(id) {
@@ -119,7 +139,7 @@
             method: "DELETE"
         })
         .then(() => loadHistory())
-        .catch(err => console.error(err));
+        .catch(err => console.error("Delete error:", err));
     }
 
     function startEdit(h) {
@@ -138,7 +158,7 @@
             editStory = "";
             loadHistory();
         })
-        .catch(err => console.error(err));
+        .catch(err => console.error("Update error:", err));
     }
 </script>
 
@@ -173,7 +193,7 @@
 <div class="box" style="position: relative;">
     
     <button 
-        style="position:absolute; top:10px; right:10px; width:auto; padding:5px 10px;"
+        style="position:absolute; top:10px; right:10px;"
         on:click={() => { showHistory = true; loadHistory(); }}>
         📜
     </button>
@@ -192,13 +212,13 @@
 
     <textarea bind:value={story} placeholder="cerita kamu hari ini..."></textarea>
 
-    <button class="save-btn" on:click={save}>Simpan</button>
+    <button on:click={save}>Simpan</button>
 
     {#if quote}
         <p>✨ {quote}</p>
     {/if}
 
-    <button class="logout-btn" on:click={logout}>Logout</button>
+    <button on:click={logout}>Logout</button>
 </div>
 
 {#if showHistory}
@@ -216,7 +236,7 @@
 
                 {#if editId === h.id}
                     <textarea bind:value={editStory}></textarea>
-                    <button on:click={() => updateHistory(h.id)}>Simpan Edit</button>
+                    <button on:click={() => updateHistory(h.id)}>Simpan</button>
                 {:else}
                     <p>{h.story}</p>
                     <button on:click={() => startEdit(h)}>Edit</button>
